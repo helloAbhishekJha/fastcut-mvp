@@ -76,6 +76,7 @@ taskPrefix: CC
 
 ### Done
 
+- [x] **CC-86** Mirror Project todo board to GitHub for offline work Oct 30 [GitHub todo mirror](bc-a3781b9a-c396-5d32-841e-129d2749fea0)
 - [x] **CC-77** ^CC-49 DM Chetan will complete by 11 Nov Oct 30
 - [x] **CC-76** Recraft Pro 4K free monthly activated Oct 29 [Subs log](/cursor/stores/self/docs/subscriptions-and-trials-log.md)
 - [x] **CC-65** Money Energy audiobook Oct 29 YouTube [Log](/cursor/stores/self/docs/learning-attendance-log.md)
