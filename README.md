@@ -1,32 +1,55 @@
-# Cursor Project todo — GitHub backup
+# FastCut MVP (v0.0.0)
 
-This repository mirrors **Abhishek’s Cursor Project todo board** (CC board): notes, preferences, planning docs, and workflows.
+Minimal **AI short-form video editor** for the PayPal hackathon — a vertical slice inspired by FastCut, not feature parity.
 
-## Where the live copy lives
+## Demo in 30 seconds
 
-The **canonical** copy is in **Cursor Project Context** (the Project store in Cursor). Treat that as source of truth while Cloud Agents and the Project are available.
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
 
-This Git repo is a **backup and offline edit surface**:
+Open [http://localhost:4418](http://localhost:4418), upload any video file, click **Analyze**, then **Export**. Demo mode skips PayPal and unlocks HD with one click.
 
-- Edit here when Cursor Cloud or the Project store is unavailable.
-- When Cloud is back, **merge changes back** into Project Context, or ask the Project agent to pull from this GitHub repo.
+## Feature flags
 
-## Layout
+| Variable | Default (demo) | Effect |
+|----------|----------------|--------|
+| `NEXT_PUBLIC_DEMO_MODE` | `true` | Skip PayPal; fake successful checkout |
+| `ENABLE_PAYPAL` | `false` | Real sandbox Orders v2 + PayPal JS buttons |
+| `ENABLE_OPENAI` | `false` | LLM caption/hook suggestions vs fixtures |
+| `ENABLE_FFMPEG` | `false` | Real trim pipeline vs simulated progress |
+| `ENABLE_HD_EXPORT` | `true` | Show HD export + $5 unlock flow |
 
-| Path | Contents |
-|------|----------|
-| [`project-todo/notes.md`](project-todo/notes.md) | Rolling status and pointers |
-| [`project-todo/preferences.md`](project-todo/preferences.md) | Reusable preferences for agents |
-| [`project-todo/docs/`](project-todo/docs/) | Workstream and todo markdown |
-| [`project-todo/workflows/`](project-todo/workflows/) | Recurring workflow docs |
-| [`project-todo/SYNC.md`](project-todo/SYNC.md) | Last sync time, file list, manual sync steps |
+Copy `.env.example` to `.env.local` and toggle flags without code changes.
 
-**Not mirrored:** `media/` and other large binaries stay in Project Context only.
+## PayPal (sandbox)
 
-## Sync
+- `POST /api/paypal/create-order` — one-time **$5 USD** HD export unlock
+- `POST /api/paypal/capture-order` — capture after buyer approval
+- Set `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, and `NEXT_PUBLIC_PAYPAL_CLIENT_ID` from [PayPal Developer](https://developer.paypal.com/) sandbox apps.
 
-Automated sync from the store runs on Cloud Agent VMs (see [`scripts/sync-project-todo-to-repo.sh`](scripts/sync-project-todo-to-repo.sh)). For manual steps, see [`project-todo/SYNC.md`](project-todo/SYNC.md).
+## What's real vs stubbed
 
-## Clone
+| Area | MVP behavior |
+|------|----------------|
+| Upload / preview | Browser `File` + `<video>` |
+| Analyze progress | Simulated unless `ENABLE_FFMPEG=true` |
+| Silence trim | UI + message only (no ffmpeg.wasm bundled yet) |
+| Captions / hooks | Fixture JSON; optional OpenAI when keyed |
+| Preview export | Watermarked PNG frame from video |
+| HD export | Downloads **original uploaded file** after unlock |
 
-After this repo is attached to a named GitHub repository under [helloAbhishekJha](https://github.com/helloAbhishekJha), clone that URL. Until then, use the Cursor temporary mirror remote shown in your agent run logs.
+## Scripts
+
+- `npm run dev` — port **4418**
+- `npm run build` / `npm start` — production
+
+## Stack
+
+Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui.
+
+## Devpost angle
+
+**PayPal:** monetize HD export with sandbox checkout. **AI:** one-line brief drives caption and hook suggestions (fixtures always work offline).
