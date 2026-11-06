@@ -1,19 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-import { flags } from "@/lib/flags";
+import { featureFlags } from "@/lib/feature-flags";
 import {
   DEMO_CAPTIONS,
   DEMO_HOOKS,
   captionsFromBrief,
 } from "@/lib/fixtures/captions";
+import { stripCaptionEmojis, withCaptionEmojis } from "@/lib/caption-format";
+
+type Caption = { start: number; end: number; text: string };
+
+function formatCaptions(raw: Caption[]): Caption[] {
+  if (!featureFlags.enableAutoCaptions) return [];
+  return raw.map((c, i) => {
+    let text = c.text;
+    if (featureFlags.enableCaptionEmojis) {
+      text = withCaptionEmojis(text, i);
+    } else {
+      text = stripCaptionEmojis(text);
+    }
+    return { ...c, text };
+  });
+}
+
+function formatHooks(raw: string[]): string[] {
+  if (!featureFlags.enableAiHooks) return [];
+  return raw;
+}
 
 export async function POST(req: NextRequest) {
+  if (!featureFlags.enableAutoCaptions && !featureFlags.enableAiHooks) {
+    return NextResponse.json({
+      source: "disabled",
+      captions: [],
+      hooks: [],
+    });
+  }
+
   const { brief = "" } = (await req.json()) as { brief?: string };
 
-  if (!flags.enableOpenai || !process.env.OPENAI_API_KEY) {
+  if (!featureFlags.enableOpenai || !process.env.OPENAI_API_KEY) {
+    const captions = brief.trim() ? captionsFromBrief(brief) : DEMO_CAPTIONS;
     return NextResponse.json({
       source: "fixture",
-      captions: brief.trim() ? captionsFromBrief(brief) : DEMO_CAPTIONS,
-      hooks: DEMO_HOOKS,
+      captions: formatCaptions(captions),
+      hooks: formatHooks(DEMO_HOOKS),
     });
   }
 
@@ -48,18 +78,18 @@ export async function POST(req: NextRequest) {
     };
     const parsed = JSON.parse(data.choices[0].message.content) as {
       hooks?: string[];
-      captions?: { start: number; end: number; text: string }[];
+      captions?: Caption[];
     };
     return NextResponse.json({
       source: "openai",
-      hooks: parsed.hooks ?? DEMO_HOOKS,
-      captions: parsed.captions ?? DEMO_CAPTIONS,
+      hooks: formatHooks(parsed.hooks ?? DEMO_HOOKS),
+      captions: formatCaptions(parsed.captions ?? DEMO_CAPTIONS),
     });
   } catch {
     return NextResponse.json({
       source: "fixture-fallback",
-      captions: captionsFromBrief(brief),
-      hooks: DEMO_HOOKS,
+      captions: formatCaptions(captionsFromBrief(brief)),
+      hooks: formatHooks(DEMO_HOOKS),
     });
   }
 }
