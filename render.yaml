@@ -1,0 +1,89 @@
+# Render Blueprint — FastCut MVP (hackathon demo)
+# Dashboard: New → Blueprint → connect repo → use this file.
+services:
+  - type: web
+    name: fastcut-mvp
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/config
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NEXT_PUBLIC_DEMO_MODE
+        value: "true"
+      - key: ENABLE_PAYPAL
+        value: "false"
+      - key: ENABLE_OPENAI
+        value: "false"
+      - key: ENABLE_FFMPEG
+        value: "false"
+      - key: ENABLE_HD_EXPORT
+        value: "true"
+      - key: ENABLE_AUTO_CAPTIONS
+        value: "true"
+      - key: ENABLE_KARAOKE_CAPTIONS
+        value: "true"
+      - key: ENABLE_CAPTION_EMOJIS
+        value: "true"
+      - key: ENABLE_HASHTAG_SUGGESTIONS
+        value: "true"
+      - key: ENABLE_MULTILANG_SUBTITLES
+        value: "true"
+      - key: ENABLE_BROLL_UNDER_FACE
+        value: "true"
+      - key: ENABLE_STOCK_BROLL
+        value: "true"
+      - key: ENABLE_GIF_INSERTS
+        value: "true"
+      - key: ENABLE_AI_HOOKS
+        value: "true"
+      - key: ENABLE_SCRIPT_REWRITE
+        value: "true"
+      - key: ENABLE_CTA_LINES
+        value: "true"
+      - key: ENABLE_END_CARD_CTA
+        value: "true"
+      - key: ENABLE_TRIM_SILENCE
+        value: "true"
+      - key: ENABLE_FILLER_WORD_REMOVAL
+        value: "true"
+      - key: ENABLE_VOICE_DENOISE
+        value: "true"
+      - key: ENABLE_AUDIO_NORMALIZE
+        value: "true"
+      - key: ENABLE_REELS_PRESET
+        value: "true"
+      - key: ENABLE_TIKTOK_PRESET
+        value: "true"
+      - key: ENABLE_SHORTS_PRESET
+        value: "true"
+      - key: ENABLE_LINKEDIN_SQUARE_PRESET
+        value: "true"
+      - key: ENABLE_YOUTUBE_LANDSCAPE_PRESET
+        value: "true"
+      - key: ENABLE_SMART_REFRAME
+        value: "true"
+      - key: ENABLE_BACKGROUND_BLUR
+        value: "true"
+      - key: ENABLE_BACKGROUND_REMOVE
+        value: "true"
+      - key: ENABLE_AUTO_CHAPTERS
+        value: "true"
+      - key: ENABLE_VIRAL_MOMENTS
+        value: "true"
+      - key: ENABLE_BEAT_SYNC_MARKERS
+        value: "true"
+      - key: ENABLE_PUNCH_IN_ZOOM
+        value: "true"
+      - key: ENABLE_COLOR_GRADE_LUT
+        value: "true"
+      - key: ENABLE_LOWER_THIRDS
+        value: "true"
+      - key: ENABLE_BRAND_TEMPLATE
+        value: "true"
+      - key: ENABLE_AUTO_THUMBNAIL
+        value: "true"
+      - key: ENABLE_INTRO_OUTRO_BUMPER
+        value: "true"

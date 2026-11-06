@@ -1,16 +1,58 @@
-# FastCut MVP (v0.2.0)
+# FastCut MVP (v0.2.1)
 
 Minimal **AI short-form video editor** for the PayPal hackathon — a vertical slice with a broad **AI Feature Studio** (demo/fixture pipeline), not production parity with FastCut.
 
-## Demo in 30 seconds
+## Judge / tester — 60-second path
+
+1. Open the app (local [http://localhost:4418](http://localhost:4418) or your hosted URL below).
+2. Confirm badges: **Demo mode**, **33 AI features** (with default `.env.example`).
+3. **Upload** any short video (phone clip is fine).
+4. Optional: one-line brief → click **Run AI pipeline** (~2s simulated analyze).
+5. Scroll to **AI Feature Studio** — expand categories, flip a toggle, confirm preview overlays (b-roll, blur, lower third).
+6. **Continue to export** → **Download preview (watermarked)**.
+7. **Unlock HD export — $5** → in demo mode, instant unlock → **Download HD (original file)**.
+
+Full flag reference: [`docs/fastcut-ai-feature-catalog.md`](docs/fastcut-ai-feature-catalog.md) (Devpost copy). Summary tables below.
+
+## Run locally
 
 ```bash
+git clone https://github.com/helloAbhishekJha/fastcut-mvp.git
+cd fastcut-mvp
 npm install
 cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:4418](http://localhost:4418), upload a clip, run **AI pipeline**, expand **AI Feature Studio**, export (PayPal HD unlock still works in demo mode).
+Open [http://localhost:4418](http://localhost:4418).
+
+Production build:
+
+```bash
+npm run build
+npm start
+```
+
+## Deploy (hosted demo)
+
+### Vercel (recommended)
+
+1. Import [helloAbhishekJha/fastcut-mvp](https://github.com/helloAbhishekJha/fastcut-mvp) in Vercel.
+2. Framework preset: **Next.js** (uses root `vercel.json`).
+3. **Environment variables:** copy all keys from `.env.example` (defaults are demo-safe). Minimum for judges:
+   - `NEXT_PUBLIC_DEMO_MODE=true`
+   - `ENABLE_PAYPAL=false`, `ENABLE_FFMPEG=false`, `ENABLE_OPENAI=false`
+   - leave all `ENABLE_*` AI flags `true` unless trimming the demo surface.
+4. Deploy → use the `*.vercel.app` URL in Devpost / YouTube description.
+
+### Render
+
+1. New **Blueprint** → connect this repo (uses root `render.yaml`).
+2. Service sets demo env vars automatically; adjust in the Render dashboard if needed.
+3. Health check: `GET /api/config`.
+4. Note: `npm start` binds to `PORT` (Render) or **4418** locally.
+
+After deploy, paste the public URL at the top of your test pass checklist.
 
 ## Feature flags
 
@@ -76,7 +118,7 @@ Dev-only hints when a flag is off: `npm run dev` sets `showDevHints` via `/api/c
 ## Scripts
 
 - `npm run dev` — port **4418**
-- `npm run build` / `npm start`
+- `npm run build` / `npm start` — production (respects `PORT` on hosts like Render)
 
 ## Stack
 

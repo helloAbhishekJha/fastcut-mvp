@@ -76,7 +76,20 @@ export function AiFeatureStudio({
   const activeCount = enabledDefs.filter((d) => toggles[d.configKey] !== false)
     .length;
 
-  if (!config || enabledCount === 0) {
+  if (!config) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">AI Feature Studio</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">Loading feature flags…</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (enabledCount === 0) {
     return (
       <Card>
         <CardHeader>
