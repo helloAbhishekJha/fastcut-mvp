@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AiFeatureStudio } from "@/components/editor/ai-feature-studio";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -8,27 +9,21 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  PLATFORM_PRESETS,
+  type PlatformPresetId,
+} from "@/lib/ai-feature-definitions";
+import {
+  defaultAppConfigFallback,
+  type AppConfig,
+  type StudioPayload,
+} from "@/lib/app-config";
+import { presetAspectClass } from "@/lib/fixtures/studio";
 import { Check, Download, Film, Lock, Sparkles, Upload } from "lucide-react";
 
 type Step = "upload" | "analyze" | "edit" | "export";
 
 type Caption = { start: number; end: number; text: string };
-
-type AppConfig = {
-  demoMode: boolean;
-  enablePaypal: boolean;
-  enableOpenai: boolean;
-  enableFfmpeg: boolean;
-  enableHdExport: boolean;
-  enableAutoCaptions: boolean;
-  enableCaptionEmojis: boolean;
-  enableBrollUnderFace: boolean;
-  enableAiHooks: boolean;
-  enableTrimSilence: boolean;
-  enableReelsPreset: boolean;
-  showDevHints: boolean;
-  paypalClientId: string | null;
-};
 
 function DevFlagHint({
   show,
@@ -66,17 +61,30 @@ declare global {
   }
 }
 
+function buildInitialToggles(): Record<string, boolean> {
+  const base = defaultAppConfigFallback();
+  const out: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(base)) {
+    if (k.startsWith("enable") && k !== "enablePaypal" && k !== "enableOpenai" && k !== "enableFfmpeg" && k !== "enableHdExport") {
+      out[k] = v as boolean;
+    }
+  }
+  return out;
+}
+
 export function FastCutEditor() {
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [preset, setPreset] = useState<"reels" | "original">("reels");
+  const [preset, setPreset] = useState<PlatformPresetId>("reels");
   const [trimSilence, setTrimSilence] = useState(true);
-  const [brollUnderFace, setBrollUnderFace] = useState(true);
+  const [featureToggles, setFeatureToggles] = useState(buildInitialToggles);
   const [analyzeProgress, setAnalyzeProgress] = useState(0);
+  const [audioProgress, setAudioProgress] = useState<number | null>(null);
   const [brief, setBrief] = useState("");
   const [captions, setCaptions] = useState<Caption[]>([]);
   const [hooks, setHooks] = useState<string[]>([]);
+  const [studio, setStudio] = useState<StudioPayload | null>(null);
   const [captionSource, setCaptionSource] = useState<string>("fixture");
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [hdUnlocked, setHdUnlocked] = useState(false);
@@ -90,91 +98,108 @@ export function FastCutEditor() {
     fetch("/api/config")
       .then((r) => r.json())
       .then(setConfig)
-      .catch(() =>
-        setConfig({
-          demoMode: true,
-          enablePaypal: false,
-          enableOpenai: false,
-          enableFfmpeg: false,
-          enableHdExport: true,
-          enableAutoCaptions: true,
-          enableCaptionEmojis: true,
-          enableBrollUnderFace: true,
-          enableAiHooks: true,
-          enableTrimSilence: true,
-          enableReelsPreset: true,
-          showDevHints: process.env.NODE_ENV === "development",
-          paypalClientId: null,
-        }),
-      );
+      .catch(() => setConfig(defaultAppConfigFallback()));
   }, []);
+
+  const availablePresets = useMemo(() => {
+    if (!config) return PLATFORM_PRESETS.filter((p) => p.id === "original");
+    return PLATFORM_PRESETS.filter(
+      (p) =>
+        p.configKey === null ||
+        config[p.configKey as keyof AppConfig] !== false,
+    );
+  }, [config]);
 
   useEffect(() => {
     if (!config) return;
-    if (!config.enableReelsPreset && preset === "reels") {
-      setPreset("original");
+    if (!availablePresets.some((p) => p.id === preset)) {
+      setPreset(availablePresets[0]?.id ?? "original");
     }
-    if (!config.enableTrimSilence) {
-      setTrimSilence(false);
-    }
-    if (!config.enableBrollUnderFace) {
-      setBrollUnderFace(false);
-    }
-  }, [config, preset]);
+    if (!config.enableTrimSilence) setTrimSilence(false);
+  }, [config, preset, availablePresets]);
+
+  const aiFeatureCount = useMemo(() => {
+    if (!config) return 0;
+    return Object.keys(featureToggles).filter(
+      (k) => config[k as keyof AppConfig] !== false,
+    ).length;
+  }, [config, featureToggles]);
 
   const stepIndex = STEPS.findIndex((s) => s.id === step);
 
-  const onFile = useCallback((f: File | null) => {
-    if (videoUrl) URL.revokeObjectURL(videoUrl);
-    setFile(f);
-    if (f) {
-      setVideoUrl(URL.createObjectURL(f));
-      setStep("upload");
-      setAnalyzeProgress(0);
-    } else {
-      setVideoUrl(null);
-    }
-  }, [videoUrl]);
+  const onFile = useCallback(
+    (f: File | null) => {
+      if (videoUrl) URL.revokeObjectURL(videoUrl);
+      setFile(f);
+      if (f) {
+        setVideoUrl(URL.createObjectURL(f));
+        setStep("upload");
+        setAnalyzeProgress(0);
+        setStudio(null);
+      } else {
+        setVideoUrl(null);
+      }
+    },
+    [videoUrl],
+  );
+
+  const onFeatureToggle = useCallback((key: string, on: boolean) => {
+    setFeatureToggles((prev) => ({ ...prev, [key]: on }));
+  }, []);
 
   const runAnalyze = useCallback(async () => {
     if (!file) return;
     setStep("analyze");
     setAnalyzeProgress(0);
+    setAudioProgress(null);
     setBusy(true);
     setMessage(null);
 
     const runTrim =
-      trimSilence && config?.enableTrimSilence !== false;
-    const runAi =
-      config?.enableAutoCaptions !== false || config?.enableAiHooks !== false;
+      trimSilence &&
+      config?.enableTrimSilence !== false &&
+      featureToggles.enableTrimSilence !== false;
+    const runStudio = aiFeatureCount > 0;
 
-    const ticks = config?.enableFfmpeg ? 8 : 5;
+    const ticks = config?.enableFfmpeg ? 10 : 6;
     for (let i = 1; i <= ticks; i++) {
-      await new Promise((r) => setTimeout(r, config?.enableFfmpeg ? 400 : 280));
-      setAnalyzeProgress(Math.round((i / ticks) * (runTrim ? 85 : 100)));
+      await new Promise((r) => setTimeout(r, config?.enableFfmpeg ? 350 : 250));
+      setAnalyzeProgress(Math.round((i / ticks) * (runTrim ? 80 : 100)));
     }
     if (runTrim && !config?.enableFfmpeg) {
       setMessage(
         "Silence trim simulated (set ENABLE_FFMPEG=true for real processing).",
       );
     }
+
+    if (
+      (config?.enableVoiceDenoise || config?.enableAudioNormalize) &&
+      (featureToggles.enableVoiceDenoise !== false ||
+        featureToggles.enableAudioNormalize !== false)
+    ) {
+      for (let i = 1; i <= 4; i++) {
+        await new Promise((r) => setTimeout(r, 200));
+        setAudioProgress(i * 25);
+      }
+    }
+
     setAnalyzeProgress(100);
 
-    if (runAi) {
-      const aiRes = await fetch("/api/ai/suggestions", {
+    if (runStudio) {
+      const aiRes = await fetch("/api/ai/studio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ brief }),
       });
-      const ai = (await aiRes.json()) as {
-        captions: Caption[];
-        hooks: string[];
-        source: string;
+      const data = (await aiRes.json()) as StudioPayload & {
+        karaokeWords?: string[];
       };
-      setCaptions(ai.captions);
-      setHooks(ai.hooks);
-      setCaptionSource(ai.source);
+      setStudio(data);
+      setCaptions(data.captions);
+      setHooks(data.hooks);
+      setCaptionSource(data.source);
     } else {
+      setStudio(null);
       setCaptions([]);
       setHooks([]);
       setCaptionSource("disabled");
@@ -185,10 +210,9 @@ export function FastCutEditor() {
     file,
     brief,
     trimSilence,
-    config?.enableFfmpeg,
-    config?.enableTrimSilence,
-    config?.enableAutoCaptions,
-    config?.enableAiHooks,
+    config,
+    featureToggles,
+    aiFeatureCount,
   ]);
 
   const unlockHd = useCallback(async () => {
@@ -260,6 +284,21 @@ export function FastCutEditor() {
     document.body.appendChild(s);
   }, [config, hdUnlocked, step]);
 
+  const exportDimensions = useMemo(() => {
+    switch (preset) {
+      case "reels":
+      case "tiktok":
+      case "shorts":
+        return { w: 1080, h: 1920 };
+      case "linkedin":
+        return { w: 1080, h: 1080 };
+      case "youtube":
+        return { w: 1920, h: 1080 };
+      default:
+        return null;
+    }
+  }, [preset]);
+
   const downloadHd = useCallback(() => {
     if (!file) return;
     const a = document.createElement("a");
@@ -278,8 +317,8 @@ export function FastCutEditor() {
         else video.onloadeddata = () => resolve();
       });
       const canvas = document.createElement("canvas");
-      const w = preset === "reels" ? 1080 : video.videoWidth || 1280;
-      const h = preset === "reels" ? 1920 : video.videoHeight || 720;
+      const w = exportDimensions?.w ?? (video.videoWidth || 1280);
+      const h = exportDimensions?.h ?? (video.videoHeight || 720);
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext("2d");
@@ -309,21 +348,44 @@ export function FastCutEditor() {
       setBusy(false);
       setStep("export");
     }
-  }, [file, preset]);
+  }, [file, exportDimensions]);
 
-  const aspectClass = useMemo(
-    () => (preset === "reels" ? "aspect-[9/16] max-h-[420px]" : "aspect-video max-h-[360px]"),
-    [preset],
-  );
+  const aspectClass = presetAspectClass(preset);
+
+  const showBroll =
+    config?.enableBrollUnderFace &&
+    featureToggles.enableBrollUnderFace !== false &&
+    step !== "upload";
+  const showBlur =
+    config?.enableBackgroundBlur &&
+    featureToggles.enableBackgroundBlur !== false &&
+    step !== "upload";
+  const showCutout =
+    config?.enableBackgroundRemove &&
+    featureToggles.enableBackgroundRemove !== false &&
+    step !== "upload";
+  const showReframe =
+    config?.enableSmartReframe &&
+    featureToggles.enableSmartReframe !== false &&
+    step !== "upload";
+  const showLowerThird =
+    config?.enableLowerThirds &&
+    featureToggles.enableLowerThirds !== false &&
+    studio?.lowerThird &&
+    step !== "upload";
+  const showBrand =
+    config?.enableBrandTemplate &&
+    featureToggles.enableBrandTemplate !== false &&
+    step !== "upload";
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-violet-600">PayPal Hackathon · MVP v0</p>
+          <p className="text-sm font-medium text-violet-600">PayPal Hackathon · MVP v0.2</p>
           <h1 className="text-3xl font-bold tracking-tight">FastCut AI</h1>
           <p className="text-muted-foreground mt-1 max-w-xl">
-            AI short-form editor — upload, auto-caption, trim silence, export for Reels.
+            AI short-form studio — {aiFeatureCount}+ editing features, each toggled via env flags.
           </p>
         </div>
         {config && (
@@ -332,8 +394,7 @@ export function FastCutEditor() {
             {config.enableOpenai && <Badge>OpenAI</Badge>}
             {config.enableFfmpeg && <Badge>FFmpeg</Badge>}
             {config.enablePaypal && <Badge>PayPal</Badge>}
-            {config.enableAutoCaptions && <Badge variant="outline">Captions</Badge>}
-            {config.enableBrollUnderFace && <Badge variant="outline">B-roll</Badge>}
+            <Badge variant="outline">{aiFeatureCount} AI features</Badge>
           </div>
         )}
       </header>
@@ -368,18 +429,43 @@ export function FastCutEditor() {
                     ref={videoRef}
                     src={videoUrl}
                     controls
-                    className="h-full w-full object-contain"
+                    className={`h-full w-full object-contain ${showBlur ? "scale-105 blur-[2px]" : ""} ${showCutout ? "mix-blend-lighten" : ""}`}
                   />
-                  {config?.enableBrollUnderFace && brollUnderFace && step !== "upload" && (
+                  {showReframe && (
+                    <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-emerald-400/70">
+                      <span className="absolute -top-6 left-0 text-xs text-emerald-300">
+                        Smart reframe / speaker track
+                      </span>
+                    </div>
+                  )}
+                  {showBroll && (
                     <div
                       className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%] border-t border-violet-400/40 bg-gradient-to-t from-violet-950/80 to-transparent"
                       aria-hidden
                     >
                       <span className="absolute bottom-3 left-3 rounded bg-black/50 px-2 py-0.5 text-xs text-violet-100">
-                        B-roll under speaker (AI placement)
+                        B-roll under speaker
                       </span>
                     </div>
                   )}
+                  {showBrand && (
+                    <div className="pointer-events-none absolute right-3 top-3 rounded bg-violet-600/80 px-2 py-1 text-xs text-white">
+                      Brand safe zone
+                    </div>
+                  )}
+                  {showLowerThird && studio?.lowerThird && (
+                    <div className="pointer-events-none absolute bottom-14 left-3 rounded bg-black/70 px-3 py-2 text-left text-xs text-white">
+                      <p className="font-semibold">{studio.lowerThird.name}</p>
+                      <p className="opacity-80">{studio.lowerThird.title}</p>
+                    </div>
+                  )}
+                  {config?.enablePunchInZoom &&
+                    featureToggles.enablePunchInZoom !== false &&
+                    step !== "upload" && (
+                      <span className="pointer-events-none absolute right-3 bottom-3 text-[10px] text-amber-200">
+                        Punch-in on emphasis
+                      </span>
+                    )}
                 </>
               ) : (
                 <div className="flex h-full min-h-[240px] flex-col items-center justify-center gap-2 text-zinc-400">
@@ -388,26 +474,32 @@ export function FastCutEditor() {
                 </div>
               )}
             </div>
-            {config?.enableAutoCaptions !== false && captions.length > 0 && (
-              <div className="rounded-lg border bg-muted/40 p-3 text-sm">
-                <p className="mb-2 font-medium">
-                  Auto-captions ({captionSource})
-                  {config?.enableCaptionEmojis && (
-                    <span className="text-muted-foreground font-normal"> · emojis on</span>
-                  )}
-                </p>
-                <ul className="space-y-1">
-                  {captions.map((c, i) => (
-                    <li key={i}>
-                      <span className="text-muted-foreground">
-                        [{c.start.toFixed(1)}s–{c.end.toFixed(1)}s]
-                      </span>{" "}
-                      {c.text}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {config?.enableAutoCaptions !== false &&
+              featureToggles.enableAutoCaptions !== false &&
+              captions.length > 0 && (
+                <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+                  <p className="mb-2 font-medium">
+                    Auto-captions ({captionSource})
+                    {config?.enableCaptionEmojis &&
+                      featureToggles.enableCaptionEmojis !== false && (
+                        <span className="text-muted-foreground font-normal">
+                          {" "}
+                          · emojis on
+                        </span>
+                      )}
+                  </p>
+                  <ul className="space-y-1">
+                    {captions.map((c, i) => (
+                      <li key={i}>
+                        <span className="text-muted-foreground">
+                          [{c.start.toFixed(1)}s–{c.end.toFixed(1)}s]
+                        </span>{" "}
+                        {c.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
           </CardContent>
         </Card>
 
@@ -428,17 +520,9 @@ export function FastCutEditor() {
                     onChange={(e) => onFile(e.target.files?.[0] ?? null)}
                   />
                 </div>
-                {(config?.enableAutoCaptions !== false ||
-                  config?.enableAiHooks !== false) && (
+                {aiFeatureCount > 0 && (
                   <div>
-                    <Label htmlFor="brief">
-                      One-line brief
-                      {config?.enableAiHooks !== false && config?.enableAutoCaptions !== false
-                        ? " (AI hooks & captions)"
-                        : config?.enableAiHooks !== false
-                          ? " (AI hooks)"
-                          : " (AI captions)"}
-                    </Label>
+                    <Label htmlFor="brief">One-line brief (AI studio)</Label>
                     <Textarea
                       id="brief"
                       placeholder="e.g. Launch teaser for a fintech app for Gen Z"
@@ -448,36 +532,12 @@ export function FastCutEditor() {
                     />
                   </div>
                 )}
-                <DevFlagHint
-                  show={
-                    config?.showDevHints &&
-                    config?.enableAutoCaptions === false &&
-                    config?.enableAiHooks !== false
-                  }
-                  envVar="ENABLE_AUTO_CAPTIONS"
-                />
-                <DevFlagHint
-                  show={
-                    config?.showDevHints &&
-                    config?.enableAiHooks === false &&
-                    config?.enableAutoCaptions !== false
-                  }
-                  envVar="ENABLE_AI_HOOKS"
-                />
-                <DevFlagHint
-                  show={
-                    config?.showDevHints &&
-                    config?.enableAutoCaptions === false &&
-                    config?.enableAiHooks === false
-                  }
-                  envVar="ENABLE_AUTO_CAPTIONS / ENABLE_AI_HOOKS"
-                />
                 <Button
                   className="w-full"
                   disabled={!file}
                   onClick={() => void runAnalyze()}
                 >
-                  <Sparkles className="mr-2 size-4" /> Analyze & suggest edits
+                  <Sparkles className="mr-2 size-4" /> Run AI pipeline
                 </Button>
               </>
             )}
@@ -485,48 +545,37 @@ export function FastCutEditor() {
             {step === "analyze" && (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  {config?.enableFfmpeg
-                    ? "Running analysis pipeline…"
-                    : config?.enableTrimSilence !== false
-                      ? "Simulating analyze + silence detection…"
-                      : "Simulating analyze…"}
+                  Running AI Feature Studio pipeline…
                 </p>
                 <Progress value={analyzeProgress} />
-                <p className="text-right text-xs text-muted-foreground">{analyzeProgress}%</p>
+                <p className="text-right text-xs text-muted-foreground">
+                  {analyzeProgress}%
+                </p>
               </div>
             )}
 
             {step === "edit" && (
               <>
-                {(config?.enableReelsPreset !== false ||
-                  preset === "original") && (
+                {availablePresets.length > 0 && (
                   <div className="space-y-2">
-                    <Label>Preset</Label>
-                    <div className="flex gap-2">
-                      {config?.enableReelsPreset !== false && (
+                    <Label>Platform preset</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {availablePresets.map((p) => (
                         <Button
+                          key={p.id}
                           type="button"
-                          variant={preset === "reels" ? "default" : "outline"}
-                          onClick={() => setPreset("reels")}
+                          variant={preset === p.id ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPreset(p.id)}
                         >
-                          Reels 9:16
+                          {p.label}
                         </Button>
-                      )}
-                      <Button
-                        type="button"
-                        variant={preset === "original" ? "default" : "outline"}
-                        onClick={() => setPreset("original")}
-                      >
-                        Original
-                      </Button>
+                      ))}
                     </div>
-                    <DevFlagHint
-                      show={config?.showDevHints && config?.enableReelsPreset === false}
-                      envVar="ENABLE_REELS_PRESET"
-                    />
                   </div>
                 )}
-                {config?.enableTrimSilence !== false ? (
+                {config?.enableTrimSilence !== false &&
+                featureToggles.enableTrimSilence !== false ? (
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -538,31 +587,23 @@ export function FastCutEditor() {
                     {config?.enableFfmpeg ? "(ffmpeg.wasm)" : "(simulated)"}
                   </label>
                 ) : (
-                  <DevFlagHint show={config?.showDevHints} envVar="ENABLE_TRIM_SILENCE" />
+                  <DevFlagHint
+                    show={config?.showDevHints}
+                    envVar="ENABLE_TRIM_SILENCE"
+                  />
                 )}
-                {config?.enableBrollUnderFace !== false ? (
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={brollUnderFace}
-                      onChange={(e) => setBrollUnderFace(e.target.checked)}
-                      className="size-4 rounded border"
-                    />
-                    B-roll filler under speaker face
-                  </label>
-                ) : (
-                  <DevFlagHint show={config?.showDevHints} envVar="ENABLE_BROLL_UNDER_FACE" />
-                )}
-                {config?.enableAiHooks !== false && hooks.length > 0 && (
-                  <div className="rounded-lg border p-3 text-sm">
-                    <p className="mb-2 font-medium">Hook ideas</p>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {hooks.map((h) => (
-                        <li key={h}>{h}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {config?.enableAiHooks !== false &&
+                  featureToggles.enableAiHooks !== false &&
+                  hooks.length > 0 && (
+                    <div className="rounded-lg border p-3 text-sm">
+                      <p className="mb-2 font-medium">Hook ideas</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {hooks.map((h) => (
+                          <li key={h}>{h}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 <Button className="w-full" onClick={() => setStep("export")}>
                   Continue to export
                 </Button>
@@ -619,6 +660,15 @@ export function FastCutEditor() {
           </CardContent>
         </Card>
       </div>
+
+      <AiFeatureStudio
+        config={config}
+        studio={studio}
+        toggles={featureToggles}
+        onToggle={onFeatureToggle}
+        audioProgress={audioProgress}
+        step={step}
+      />
     </div>
   );
 }
