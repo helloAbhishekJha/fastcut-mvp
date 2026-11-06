@@ -6,7 +6,7 @@ Minimal **AI short-form video editor** for the PayPal hackathon — a vertical s
 
 1. Open the app (local [http://localhost:4418](http://localhost:4418) or your hosted URL below).
 2. Confirm badges: **Demo mode**, **33 AI features** (with default `.env.example`).
-3. **Upload** any short video (phone clip is fine).
+3. **Upload** any short video (phone clip is fine), or **Use bundled sample clip**.
 4. Optional: one-line brief → click **Run AI pipeline** (~2s simulated analyze).
 5. Scroll to **AI Feature Studio** — expand categories, flip a toggle, confirm preview overlays (b-roll, blur, lower third).
 6. **Continue to export** → **Download preview (watermarked)**.

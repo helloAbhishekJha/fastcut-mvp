@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -94,6 +93,8 @@ export function FastCutEditor() {
   const [message, setMessage] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const paypalRef = useRef<HTMLDivElement>(null);
+  const videoUrlRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setHdUnlocked(localStorage.getItem(HD_KEY) === "1");
@@ -129,20 +130,55 @@ export function FastCutEditor() {
 
   const stepIndex = STEPS.findIndex((s) => s.id === step);
 
-  const onFile = useCallback(
-    (f: File | null) => {
-      if (videoUrl) URL.revokeObjectURL(videoUrl);
-      setFile(f);
-      if (f) {
-        setVideoUrl(URL.createObjectURL(f));
-        setStep("upload");
-        setAnalyzeProgress(0);
-        setStudio(null);
-      } else {
-        setVideoUrl(null);
-      }
+  const onFile = useCallback((f: File | null) => {
+    if (videoUrlRef.current) {
+      URL.revokeObjectURL(videoUrlRef.current);
+      videoUrlRef.current = null;
+    }
+    setFile(f);
+    if (f) {
+      const url = URL.createObjectURL(f);
+      videoUrlRef.current = url;
+      setVideoUrl(url);
+      setStep("upload");
+      setAnalyzeProgress(0);
+      setStudio(null);
+      setCaptions([]);
+      setHooks([]);
+    } else {
+      setVideoUrl(null);
+    }
+  }, []);
+
+  const loadSampleClip = useCallback(async () => {
+    setMessage(null);
+    try {
+      const res = await fetch("/demo/sample.mp4");
+      if (!res.ok) throw new Error("sample missing");
+      const blob = await res.blob();
+      onFile(new File([blob], "fastcut-demo-sample.mp4", { type: "video/mp4" }));
+      setMessage("Loaded bundled sample clip — run AI pipeline or jump to Export.");
+    } catch {
+      setMessage("Could not load sample clip.");
+    }
+  }, [onFile]);
+
+  const canGoToStep = useCallback(
+    (target: Step) => {
+      if (target === "analyze") return false;
+      if (target === "upload") return true;
+      if (!file) return false;
+      return target === "edit" || target === "export";
     },
-    [videoUrl],
+    [file],
+  );
+
+  const goToStep = useCallback(
+    (target: Step) => {
+      if (!canGoToStep(target)) return;
+      setStep(target);
+    },
+    [canGoToStep],
   );
 
   const onFeatureToggle = useCallback((key: string, on: boolean) => {
@@ -401,17 +437,29 @@ export function FastCutEditor() {
         )}
       </header>
 
-      <nav className="grid grid-cols-4 gap-2">
-        {STEPS.map((s, i) => (
-          <div
-            key={s.id}
-            className={`rounded-lg border px-3 py-2 text-center text-sm ${
-              i <= stepIndex ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30" : "opacity-50"
-            }`}
-          >
-            <span className="font-medium">{s.label}</span>
-          </div>
-        ))}
+      <nav className="grid grid-cols-4 gap-2" aria-label="Workflow steps">
+        {STEPS.map((s, i) => {
+          const active = s.id === step;
+          const reachable = canGoToStep(s.id);
+          const visited = i <= stepIndex;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              disabled={!reachable && !active}
+              onClick={() => goToStep(s.id)}
+              className={`rounded-lg border px-3 py-2 text-center text-sm transition-colors ${
+                active
+                  ? "border-violet-500 bg-violet-100 dark:bg-violet-950/50"
+                  : visited
+                    ? "border-violet-500/60 bg-violet-50 dark:bg-violet-950/30"
+                    : "opacity-50"
+              } ${reachable ? "cursor-pointer hover:border-violet-500" : "cursor-default"}`}
+            >
+              <span className="font-medium">{s.label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -514,14 +562,31 @@ export function FastCutEditor() {
               <>
                 <div>
                   <Label htmlFor="video">Video file</Label>
-                  <Input
+                  <input
+                    ref={fileInputRef}
                     id="video"
                     type="file"
                     accept="video/*"
-                    className="mt-2"
-                    onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+                    className="mt-2 block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-violet-100 file:px-3 file:py-1.5 file:text-sm file:font-medium dark:file:bg-violet-950"
+                    onChange={(e) => {
+                      const picked = e.target.files?.[0] ?? null;
+                      onFile(picked);
+                    }}
                   />
+                  {file && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Selected: <span className="font-medium">{file.name}</span>
+                    </p>
+                  )}
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => void loadSampleClip()}
+                >
+                  Use bundled sample clip (no upload)
+                </Button>
                 {aiFeatureCount > 0 && (
                   <div>
                     <Label htmlFor="brief">One-line brief (AI studio)</Label>
