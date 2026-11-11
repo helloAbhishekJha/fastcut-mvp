@@ -88,7 +88,10 @@ export function FastCutEditor() {
   const [config, setConfig] = useState<AppConfig>(() =>
     defaultAppConfigFallback(),
   );
-  const [hdUnlocked, setHdUnlocked] = useState(false);
+  const [hdUnlocked, setHdUnlocked] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(HD_KEY) === "1";
+  });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -97,7 +100,6 @@ export function FastCutEditor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setHdUnlocked(localStorage.getItem(HD_KEY) === "1");
     fetch("/api/config")
       .then((r) => r.json())
       .then(setConfig)
@@ -113,13 +115,13 @@ export function FastCutEditor() {
     );
   }, [config]);
 
-  useEffect(() => {
-    if (!config) return;
-    if (!availablePresets.some((p) => p.id === preset)) {
-      setPreset(availablePresets[0]?.id ?? "original");
-    }
-    if (!config.enableTrimSilence) setTrimSilence(false);
-  }, [config, preset, availablePresets]);
+  const activePreset = useMemo((): PlatformPresetId => {
+    if (availablePresets.some((p) => p.id === preset)) return preset;
+    return availablePresets[0]?.id ?? "original";
+  }, [preset, availablePresets]);
+
+  const trimSilenceEffective =
+    trimSilence && config?.enableTrimSilence !== false;
 
   const aiFeatureCount = useMemo(() => {
     if (!config) return 0;
@@ -194,9 +196,7 @@ export function FastCutEditor() {
     setMessage(null);
 
     const runTrim =
-      trimSilence &&
-      config?.enableTrimSilence !== false &&
-      featureToggles.enableTrimSilence !== false;
+      trimSilenceEffective && featureToggles.enableTrimSilence !== false;
     const runStudio = aiFeatureCount > 0;
 
     const ticks = config?.enableFfmpeg ? 10 : 6;
@@ -247,7 +247,7 @@ export function FastCutEditor() {
   }, [
     file,
     brief,
-    trimSilence,
+    trimSilenceEffective,
     config,
     featureToggles,
     aiFeatureCount,
@@ -276,7 +276,7 @@ export function FastCutEditor() {
     } finally {
       setBusy(false);
     }
-  }, [config?.demoMode]);
+  }, [config]);
 
   useEffect(() => {
     if (!config || config.demoMode || !config.enablePaypal || !config.paypalClientId) {
@@ -323,7 +323,7 @@ export function FastCutEditor() {
   }, [config, hdUnlocked, step]);
 
   const exportDimensions = useMemo(() => {
-    switch (preset) {
+    switch (activePreset) {
       case "reels":
       case "tiktok":
       case "shorts":
@@ -335,7 +335,7 @@ export function FastCutEditor() {
       default:
         return null;
     }
-  }, [preset]);
+  }, [activePreset]);
 
   const downloadHd = useCallback(() => {
     if (!file) return;
@@ -388,7 +388,7 @@ export function FastCutEditor() {
     }
   }, [file, exportDimensions]);
 
-  const aspectClass = presetAspectClass(preset);
+  const aspectClass = presetAspectClass(activePreset);
 
   const showBroll =
     config?.enableBrollUnderFace &&
@@ -420,7 +420,7 @@ export function FastCutEditor() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-violet-600">PayPal Hackathon · MVP v0.2.1</p>
+          <p className="text-sm font-medium text-violet-600">PayPal Hackathon · MVP v0.2.3</p>
           <h1 className="text-3xl font-bold tracking-tight">FastCut AI</h1>
           <p className="text-muted-foreground mt-1 max-w-xl">
             AI short-form studio — {aiFeatureCount}+ editing features, each toggled via env flags.
