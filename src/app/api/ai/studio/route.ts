@@ -13,7 +13,6 @@ import {
   STUDIO_CHAPTERS,
   STUDIO_CTA_LINES,
   STUDIO_END_CARD,
-  STUDIO_FILLER_CUTS,
   STUDIO_GIF_INSERTS,
   STUDIO_LOWER_THIRD,
   STUDIO_LUT_PRESETS,
@@ -26,6 +25,14 @@ import {
   studioHashtags,
   studioScriptRewrite,
 } from "@/lib/fixtures/studio";
+import {
+  DEMO_FILLER_CUTS,
+  isFillerWordRemovalEnabled,
+} from "@/features/filler-removal";
+import {
+  DEMO_SILENCE_CUTS,
+  isTrimSilenceEnabled,
+} from "@/features/trim-silence";
 
 type Caption = { start: number; end: number; text: string };
 
@@ -74,7 +81,14 @@ export async function POST(req: NextRequest) {
     viralMoments: featureFlags.enableViralMoments ? STUDIO_VIRAL_MOMENTS : [],
     beatMarkers: featureFlags.enableBeatSyncMarkers ? STUDIO_BEAT_MARKERS : [],
     punchZooms: featureFlags.enablePunchInZoom ? STUDIO_PUNCH_ZOOMS : [],
-    fillerCuts: featureFlags.enableFillerWordRemoval ? STUDIO_FILLER_CUTS : [],
+    silenceCuts:
+      featureFlags.enableTrimSilence && isTrimSilenceEnabled()
+        ? DEMO_SILENCE_CUTS
+        : [],
+    fillerCuts:
+      featureFlags.enableFillerWordRemoval && isFillerWordRemovalEnabled()
+        ? DEMO_FILLER_CUTS
+        : [],
     lutPresets: featureFlags.enableColorGradeLut ? STUDIO_LUT_PRESETS : [],
     lowerThird: featureFlags.enableLowerThirds ? STUDIO_LOWER_THIRD : null,
     brand: featureFlags.enableBrandTemplate ? STUDIO_BRAND : null,

@@ -10,6 +10,8 @@ import {
   type AiFeatureCategory,
 } from "@/lib/ai-feature-definitions";
 import type { AppConfig, StudioPayload } from "@/lib/app-config";
+import { TrimSilenceCutList } from "@/features/trim-silence";
+import { FillerCutList } from "@/features/filler-removal";
 import { ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 
 function DevFlagHint({
@@ -247,6 +249,30 @@ export function AiFeatureStudio({
                   ))}
                 </ul>
               )}
+              {config.enableTrimSilence &&
+                toggles.enableTrimSilence !== false &&
+                studio.silenceCuts.length > 0 && (
+                  <div>
+                    <p className="text-muted-foreground mb-1 text-xs font-medium">
+                      Silence cuts (fixture)
+                    </p>
+                    <TrimSilenceCutList
+                      cuts={studio.silenceCuts}
+                      compact
+                      showTranscript={false}
+                    />
+                  </div>
+                )}
+              {config.enableFillerWordRemoval &&
+                toggles.enableFillerWordRemoval !== false &&
+                studio.fillerCuts.length > 0 && (
+                  <div>
+                    <p className="text-muted-foreground mb-1 text-xs font-medium">
+                      Filler cuts (fixture)
+                    </p>
+                    <FillerCutList cuts={studio.fillerCuts} compact />
+                  </div>
+                )}
               {config.enableAutoChapters && studio.chapters.length > 0 && (
                 <ul className="text-xs">
                   {studio.chapters.map((c) => (

@@ -77,10 +77,7 @@ export const STUDIO_CTA_LINES = [
   "DM me START for the template",
 ];
 
-export const STUDIO_FILLER_CUTS = [
-  { start: 5.1, end: 5.4, word: "um" },
-  { start: 14.8, end: 15.1, word: "like" },
-];
+export { DEMO_FILLER_CUTS as STUDIO_FILLER_CUTS } from "@/features/filler-removal";
 
 export function karaokeWords(text: string) {
   return text.split(/\s+/).filter(Boolean);

@@ -18,6 +18,10 @@ import {
   type StudioPayload,
 } from "@/lib/app-config";
 import { presetAspectClass } from "@/lib/fixtures/studio";
+import {
+  TRIM_SILENCE_SIMULATED_MESSAGE,
+  TranscriptCutsPanel,
+} from "@/features/trim-silence";
 import { Check, Download, Film, Lock, Sparkles, Upload } from "lucide-react";
 
 type Step = "upload" | "analyze" | "edit" | "export";
@@ -205,9 +209,7 @@ export function FastCutEditor() {
       setAnalyzeProgress(Math.round((i / ticks) * (runTrim ? 80 : 100)));
     }
     if (runTrim && !config?.enableFfmpeg) {
-      setMessage(
-        "Silence trim simulated (set ENABLE_FFMPEG=true for real processing).",
-      );
+      setMessage(TRIM_SILENCE_SIMULATED_MESSAGE);
     }
 
     if (
@@ -657,6 +659,13 @@ export function FastCutEditor() {
                   <DevFlagHint
                     show={config?.showDevHints}
                     envVar="ENABLE_TRIM_SILENCE"
+                  />
+                )}
+                {config && studio && (
+                  <TranscriptCutsPanel
+                    config={config}
+                    studio={studio}
+                    toggles={featureToggles}
                   />
                 )}
                 {config?.enableAiHooks !== false &&
