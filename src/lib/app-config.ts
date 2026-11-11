@@ -115,7 +115,8 @@ export type StudioPayload = {
   viralMomentsSource?: "fixture" | "brief-heuristic" | null;
   beatMarkers: number[];
   punchZooms: typeof import("@/lib/fixtures/studio").STUDIO_PUNCH_ZOOMS;
-  fillerCuts: typeof import("@/lib/fixtures/studio").STUDIO_FILLER_CUTS;
+  silenceCuts: typeof import("@/features/trim-silence").DEMO_SILENCE_CUTS;
+  fillerCuts: typeof import("@/features/filler-removal").DEMO_FILLER_CUTS;
   lutPresets: string[];
   lowerThird: typeof import("@/lib/fixtures/studio").STUDIO_LOWER_THIRD | null;
   brand: typeof import("@/lib/fixtures/studio").STUDIO_BRAND | null;
