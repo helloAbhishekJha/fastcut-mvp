@@ -1,4 +1,4 @@
-# FastCut MVP (v0.2.4)
+# FastCut MVP (v0.2.6)
 
 Minimal **AI short-form video editor** for the PayPal hackathon — a vertical slice with a broad **AI Feature Studio** (demo/fixture pipeline), not production parity with FastCut.
 
@@ -14,24 +14,21 @@ Minimal **AI short-form video editor** for the PayPal hackathon — a vertical s
 
 Full flag reference: [`docs/fastcut-ai-feature-catalog.md`](docs/fastcut-ai-feature-catalog.md) (Devpost copy). Summary tables below.
 
-## Run locally
+## Run locally (judge / YouTube demo)
+
+For recording and manual testing, use the **production server** so React hydrates and buttons work:
 
 ```bash
 git clone https://github.com/helloAbhishekJha/fastcut-mvp.git
 cd fastcut-mvp
 npm install
 cp .env.example .env.local
-npm run dev
+npm run demo   # build + next start on port 4418
 ```
 
 Open [http://localhost:4418](http://localhost:4418).
 
-Production build:
-
-```bash
-npm run build
-npm start
-```
+**Development** (`npm run dev`) is fine for editing code; if **Use bundled sample clip** or other clicks do nothing, switch to `npm run demo` or deploy Vercel (production build).
 
 ## Deploy (hosted demo)
 
