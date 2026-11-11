@@ -109,7 +109,8 @@ export type StudioPayload = {
   stockBroll: typeof import("@/lib/fixtures/studio").STUDIO_STOCK_BROLL;
   gifInserts: typeof import("@/lib/fixtures/studio").STUDIO_GIF_INSERTS;
   chapters: typeof import("@/lib/fixtures/studio").STUDIO_CHAPTERS;
-  viralMoments: typeof import("@/lib/fixtures/studio").STUDIO_VIRAL_MOMENTS;
+  viralMoments: import("@/features/viral-moments").ViralMomentClip[];
+  viralMomentsSource?: "fixture" | "brief-heuristic" | null;
   beatMarkers: number[];
   punchZooms: typeof import("@/lib/fixtures/studio").STUDIO_PUNCH_ZOOMS;
   fillerCuts: typeof import("@/lib/fixtures/studio").STUDIO_FILLER_CUTS;

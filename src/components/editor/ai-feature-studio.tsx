@@ -10,6 +10,7 @@ import {
   type AiFeatureCategory,
 } from "@/lib/ai-feature-definitions";
 import type { AppConfig, StudioPayload } from "@/lib/app-config";
+import { ViralMomentsCards } from "@/features/viral-moments";
 import { ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 
 function DevFlagHint({
@@ -51,6 +52,10 @@ const CATEGORY_ORDER: AiFeatureCategory[] = [
 function isEnabled(config: AppConfig | null, key: string): boolean {
   if (!config) return false;
   return Boolean(config[key as keyof AppConfig]);
+}
+
+function featureTogglesOn(toggles: FeatureToggleState, configKey: string): boolean {
+  return toggles[configKey] !== false;
 }
 
 export function AiFeatureStudio({
@@ -256,15 +261,21 @@ export function AiFeatureStudio({
                   ))}
                 </ul>
               )}
-              {config.enableViralMoments && studio.viralMoments.length > 0 && (
-                <ul className="text-xs">
-                  {studio.viralMoments.map((v) => (
-                    <li key={v.start}>
-                      {v.start}s–{v.end}s · score {v.score} · {v.label}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {config.enableViralMoments &&
+                featureTogglesOn(toggles, "enableViralMoments") &&
+                studio.viralMoments.length > 0 && (
+                  <ViralMomentsCards
+                    clips={studio.viralMoments}
+                    source={
+                      studio.viralMomentsSource === "brief-heuristic"
+                        ? "from brief"
+                        : studio.viralMomentsSource === "fixture"
+                          ? "sample clip"
+                          : undefined
+                    }
+                    compact
+                  />
+                )}
               {config.enableAutoThumbnail && studio.thumbnails.length > 0 && (
                 <p className="text-xs">
                   Thumbnail picks:{" "}
