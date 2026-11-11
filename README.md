@@ -1,4 +1,4 @@
-# FastCut MVP (v0.2.3)
+# FastCut MVP (v0.2.4)
 
 Minimal **AI short-form video editor** for the PayPal hackathon — a vertical slice with a broad **AI Feature Studio** (demo/fixture pipeline), not production parity with FastCut.
 

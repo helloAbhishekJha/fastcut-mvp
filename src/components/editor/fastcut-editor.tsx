@@ -441,7 +441,7 @@ export function FastCutEditor() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-violet-600">PayPal Hackathon · MVP v0.2.3</p>
+          <p className="text-sm font-medium text-violet-600">PayPal Hackathon · MVP v0.2.4</p>
           <h1 className="text-3xl font-bold tracking-tight">FastCut AI</h1>
           <p className="text-muted-foreground mt-1 max-w-xl">
             AI short-form studio — {aiFeatureCount}+ editing features, each toggled via env flags.
