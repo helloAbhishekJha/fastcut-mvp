@@ -18,6 +18,10 @@ import {
   type StudioPayload,
 } from "@/lib/app-config";
 import { presetAspectClass } from "@/lib/fixtures/studio";
+import {
+  PunchInZoomPreview,
+  usePunchInZoom,
+} from "@/features/punch-in-zoom";
 import { Check, Download, Film, Lock, Sparkles, Upload } from "lucide-react";
 
 type Step = "upload" | "analyze" | "edit" | "export";
@@ -123,6 +127,13 @@ export function FastCutEditor() {
   const trimSilenceEffective =
     trimSilence && config?.enableTrimSilence !== false;
 
+  const punchInZoomEnabled =
+    Boolean(config?.enablePunchInZoom) &&
+    featureToggles.enablePunchInZoom !== false &&
+    step !== "upload";
+
+  const punchInZoom = usePunchInZoom(studio?.punchZooms);
+
   const aiFeatureCount = useMemo(() => {
     if (!config) return 0;
     return Object.keys(featureToggles).filter(
@@ -132,25 +143,29 @@ export function FastCutEditor() {
 
   const stepIndex = STEPS.findIndex((s) => s.id === step);
 
-  const onFile = useCallback((f: File | null) => {
-    if (videoUrlRef.current) {
-      URL.revokeObjectURL(videoUrlRef.current);
-      videoUrlRef.current = null;
-    }
-    setFile(f);
-    if (f) {
-      const url = URL.createObjectURL(f);
-      videoUrlRef.current = url;
-      setVideoUrl(url);
-      setStep("upload");
-      setAnalyzeProgress(0);
-      setStudio(null);
-      setCaptions([]);
-      setHooks([]);
-    } else {
-      setVideoUrl(null);
-    }
-  }, []);
+  const onFile = useCallback(
+    (f: File | null) => {
+      if (videoUrlRef.current) {
+        URL.revokeObjectURL(videoUrlRef.current);
+        videoUrlRef.current = null;
+      }
+      punchInZoom.resetUserMarkers();
+      setFile(f);
+      if (f) {
+        const url = URL.createObjectURL(f);
+        videoUrlRef.current = url;
+        setVideoUrl(url);
+        setStep("upload");
+        setAnalyzeProgress(0);
+        setStudio(null);
+        setCaptions([]);
+        setHooks([]);
+      } else {
+        setVideoUrl(null);
+      }
+    },
+    [punchInZoom.resetUserMarkers],
+  );
 
   const loadSampleClip = useCallback(async () => {
     setMessage(null);
@@ -475,12 +490,22 @@ export function FastCutEditor() {
             >
               {videoUrl ? (
                 <>
-                  <video
-                    ref={videoRef}
-                    src={videoUrl}
-                    controls
-                    className={`h-full w-full object-contain ${showBlur ? "scale-105 blur-[2px]" : ""} ${showCutout ? "mix-blend-lighten" : ""}`}
-                  />
+                  <PunchInZoomPreview
+                    enabled={punchInZoomEnabled}
+                    videoRef={videoRef}
+                    markers={punchInZoom.markers}
+                    placementArmed={punchInZoom.placementArmed}
+                    onArmPlacement={punchInZoom.setPlacementArmed}
+                    onPlaceMarker={punchInZoom.addClickMarker}
+                    onRemoveMarker={punchInZoom.removeClickMarker}
+                  >
+                    <video
+                      ref={videoRef}
+                      src={videoUrl}
+                      controls
+                      className={`h-full w-full object-contain ${showBlur ? "scale-105 blur-[2px]" : ""} ${showCutout ? "mix-blend-lighten" : ""}`}
+                    />
+                  </PunchInZoomPreview>
                   {showReframe && (
                     <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-emerald-400/70">
                       <span className="absolute -top-6 left-0 text-xs text-emerald-300">
@@ -509,13 +534,6 @@ export function FastCutEditor() {
                       <p className="opacity-80">{studio.lowerThird.title}</p>
                     </div>
                   )}
-                  {config?.enablePunchInZoom &&
-                    featureToggles.enablePunchInZoom !== false &&
-                    step !== "upload" && (
-                      <span className="pointer-events-none absolute right-3 bottom-3 text-[10px] text-amber-200">
-                        Punch-in on emphasis
-                      </span>
-                    )}
                 </>
               ) : (
                 <div className="flex h-full min-h-[240px] flex-col items-center justify-center gap-2 text-zinc-400">
