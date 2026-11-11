@@ -17,6 +17,7 @@ import {
   type AppConfig,
   type StudioPayload,
 } from "@/lib/app-config";
+import { ViralMomentsCards } from "@/features/viral-moments";
 import { presetAspectClass } from "@/lib/fixtures/studio";
 import { TimelineTrimPanel } from "@/features/timeline-trim";
 import { Check, Download, Film, Lock, Sparkles, Upload } from "lucide-react";
@@ -670,6 +671,21 @@ export function FastCutEditor() {
                           <li key={h}>{h}</li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+                {config?.enableViralMoments &&
+                  featureToggles.enableViralMoments !== false &&
+                  studio &&
+                  studio.viralMoments.length > 0 && (
+                    <div className="rounded-lg border border-violet-200/60 p-3 dark:border-violet-900/40">
+                      <ViralMomentsCards
+                        clips={studio.viralMoments}
+                        source={
+                          studio.viralMomentsSource === "brief-heuristic"
+                            ? "AI clipping (brief)"
+                            : "AI clipping (sample)"
+                        }
+                      />
                     </div>
                   )}
                 <Button className="w-full" onClick={() => setStep("export")}>

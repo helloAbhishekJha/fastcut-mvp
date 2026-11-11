@@ -21,11 +21,11 @@ import {
   STUDIO_STOCK_BROLL,
   STUDIO_SUBTITLE_LANGS,
   STUDIO_THUMBNAILS,
-  STUDIO_VIRAL_MOMENTS,
   karaokeWords,
   studioHashtags,
   studioScriptRewrite,
 } from "@/lib/fixtures/studio";
+import { viralMomentsForBrief } from "@/features/viral-moments";
 
 type Caption = { start: number; end: number; text: string };
 
@@ -52,6 +52,11 @@ export async function POST(req: NextRequest) {
   if (featureFlags.enableVoiceDenoise) audioPasses.push("denoise");
   if (featureFlags.enableAudioNormalize) audioPasses.push("normalize");
 
+  const viral =
+    featureFlags.enableViralMoments
+      ? viralMomentsForBrief(brief)
+      : { clips: [], source: "fixture" as const };
+
   return NextResponse.json({
     source: featureFlags.enableOpenai ? "openai-or-fixture" : "fixture",
     captions,
@@ -71,7 +76,8 @@ export async function POST(req: NextRequest) {
     stockBroll: featureFlags.enableStockBroll ? STUDIO_STOCK_BROLL : [],
     gifInserts: featureFlags.enableGifInserts ? STUDIO_GIF_INSERTS : [],
     chapters: featureFlags.enableAutoChapters ? STUDIO_CHAPTERS : [],
-    viralMoments: featureFlags.enableViralMoments ? STUDIO_VIRAL_MOMENTS : [],
+    viralMoments: viral.clips,
+    viralMomentsSource: featureFlags.enableViralMoments ? viral.source : null,
     beatMarkers: featureFlags.enableBeatSyncMarkers ? STUDIO_BEAT_MARKERS : [],
     punchZooms: featureFlags.enablePunchInZoom ? STUDIO_PUNCH_ZOOMS : [],
     fillerCuts: featureFlags.enableFillerWordRemoval ? STUDIO_FILLER_CUTS : [],

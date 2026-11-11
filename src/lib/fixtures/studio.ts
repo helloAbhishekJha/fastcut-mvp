@@ -23,11 +23,8 @@ export const STUDIO_CHAPTERS = [
   { start: 38, title: "CTA" },
 ];
 
-export const STUDIO_VIRAL_MOMENTS = [
-  { start: 3.2, end: 7.8, score: 92, label: "Pattern interrupt" },
-  { start: 18.5, end: 24.1, score: 88, label: "Payoff line" },
-  { start: 41.0, end: 45.5, score: 85, label: "Shareable quote" },
-];
+/** @deprecated Use `@/features/viral-moments` — kept for type re-exports only. */
+export { VIRAL_MOMENTS_FIXTURE as STUDIO_VIRAL_MOMENTS } from "@/features/viral-moments/fixture";
 
 export const STUDIO_BEAT_MARKERS = [0, 1.2, 2.4, 3.6, 4.8, 6.0, 7.2, 8.4];
 
