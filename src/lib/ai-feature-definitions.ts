@@ -282,6 +282,14 @@ export const AI_FEATURE_DEFINITIONS: AiFeatureDefinition[] = [
     category: "Brand & export",
     defaultEnabled: true,
   },
+  {
+    env: "ENABLE_TIMELINE_TRIM",
+    configKey: "enableTimelineTrim",
+    label: "Timeline trim",
+    description: "In/out markers and scrub bar on export (preview)",
+    category: "Brand & export",
+    defaultEnabled: true,
+  },
 ];
 
 export type PlatformPresetId =

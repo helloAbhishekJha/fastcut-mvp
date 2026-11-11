@@ -18,6 +18,7 @@ import {
   type StudioPayload,
 } from "@/lib/app-config";
 import { presetAspectClass } from "@/lib/fixtures/studio";
+import { TimelineTrimPanel } from "@/features/timeline-trim";
 import { Check, Download, Film, Lock, Sparkles, Upload } from "lucide-react";
 
 type Step = "upload" | "analyze" | "edit" | "export";
@@ -679,6 +680,15 @@ export function FastCutEditor() {
 
             {step === "export" && (
               <>
+                {config?.enableTimelineTrim !== false && file && (
+                  <TimelineTrimPanel videoRef={videoRef} className="rounded-lg border p-4" />
+                )}
+                {config?.enableTimelineTrim === false && (
+                  <DevFlagHint
+                    show={config?.showDevHints}
+                    envVar="ENABLE_TIMELINE_TRIM"
+                  />
+                )}
                 <Button
                   variant="outline"
                   className="w-full"

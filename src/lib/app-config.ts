@@ -44,6 +44,7 @@ export type AiFlagsConfig = {
   enableBrandTemplate: boolean;
   enableAutoThumbnail: boolean;
   enableIntroOutroBumper: boolean;
+  enableTimelineTrim: boolean;
 };
 
 export type AppConfig = InfraConfig &
@@ -93,6 +94,7 @@ export function defaultAppConfigFallback(): AppConfig {
     enableBrandTemplate: true,
     enableAutoThumbnail: true,
     enableIntroOutroBumper: true,
+    enableTimelineTrim: true,
   };
 }
 
