@@ -6,13 +6,14 @@ import {
   captionsFromBrief,
 } from "@/lib/fixtures/captions";
 import { stripCaptionEmojis, withCaptionEmojis } from "@/lib/caption-format";
+import { DEMO_END_CARD } from "@/features/end-card/fixtures";
+import { DEMO_THUMBNAIL_PICKS } from "@/features/auto-thumbnail/fixtures";
 import {
   STUDIO_BEAT_MARKERS,
   STUDIO_BRAND,
   STUDIO_BUMPERS,
   STUDIO_CHAPTERS,
   STUDIO_CTA_LINES,
-  STUDIO_END_CARD,
   STUDIO_FILLER_CUTS,
   STUDIO_GIF_INSERTS,
   STUDIO_LOWER_THIRD,
@@ -20,7 +21,6 @@ import {
   STUDIO_PUNCH_ZOOMS,
   STUDIO_STOCK_BROLL,
   STUDIO_SUBTITLE_LANGS,
-  STUDIO_THUMBNAILS,
   STUDIO_VIRAL_MOMENTS,
   karaokeWords,
   studioHashtags,
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       ? studioScriptRewrite(brief)
       : null,
     ctaLines: featureFlags.enableCtaLines ? STUDIO_CTA_LINES : [],
-    endCard: featureFlags.enableEndCardCta ? STUDIO_END_CARD : null,
+    endCard: featureFlags.enableEndCardCta ? DEMO_END_CARD : null,
     stockBroll: featureFlags.enableStockBroll ? STUDIO_STOCK_BROLL : [],
     gifInserts: featureFlags.enableGifInserts ? STUDIO_GIF_INSERTS : [],
     chapters: featureFlags.enableAutoChapters ? STUDIO_CHAPTERS : [],
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     lutPresets: featureFlags.enableColorGradeLut ? STUDIO_LUT_PRESETS : [],
     lowerThird: featureFlags.enableLowerThirds ? STUDIO_LOWER_THIRD : null,
     brand: featureFlags.enableBrandTemplate ? STUDIO_BRAND : null,
-    thumbnails: featureFlags.enableAutoThumbnail ? STUDIO_THUMBNAILS : [],
+    thumbnails: featureFlags.enableAutoThumbnail ? DEMO_THUMBNAIL_PICKS : [],
     bumpers: featureFlags.enableIntroOutroBumper ? STUDIO_BUMPERS : [],
     subtitleLangs: featureFlags.enableMultilangSubtitles
       ? STUDIO_SUBTITLE_LANGS

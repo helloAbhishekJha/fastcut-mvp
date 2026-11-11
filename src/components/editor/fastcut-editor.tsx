@@ -18,6 +18,8 @@ import {
   type StudioPayload,
 } from "@/lib/app-config";
 import { presetAspectClass } from "@/lib/fixtures/studio";
+import { EndCardExportSection } from "@/features/end-card";
+import { ThumbnailExportSection } from "@/features/auto-thumbnail";
 import { Check, Download, Film, Lock, Sparkles, Upload } from "lucide-react";
 
 type Step = "upload" | "analyze" | "edit" | "export";
@@ -679,6 +681,29 @@ export function FastCutEditor() {
 
             {step === "export" && (
               <>
+                {(config?.enableEndCardCta !== false &&
+                  featureToggles.enableEndCardCta !== false) ||
+                (config?.enableAutoThumbnail !== false &&
+                  featureToggles.enableAutoThumbnail !== false) ? (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">Social-ready assets</p>
+                    <EndCardExportSection
+                      enabled={
+                        config?.enableEndCardCta !== false &&
+                        featureToggles.enableEndCardCta !== false
+                      }
+                      studioCopy={studio?.endCard ?? null}
+                    />
+                    <ThumbnailExportSection
+                      enabled={
+                        config?.enableAutoThumbnail !== false &&
+                        featureToggles.enableAutoThumbnail !== false
+                      }
+                      videoRef={videoRef}
+                      picks={studio?.thumbnails ?? null}
+                    />
+                  </div>
+                ) : null}
                 <Button
                   variant="outline"
                   className="w-full"

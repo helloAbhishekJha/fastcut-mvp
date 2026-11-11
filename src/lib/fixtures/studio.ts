@@ -48,11 +48,7 @@ export const STUDIO_BRAND = {
   logoPlacement: "top-right safe zone",
 };
 
-export const STUDIO_THUMBNAILS = [
-  { t: 1.4, score: 94, note: "Strong eye contact" },
-  { t: 11.2, score: 89, note: "Gesture peak" },
-  { t: 28.6, score: 86, note: "Product in frame" },
-];
+export { DEMO_THUMBNAIL_PICKS as STUDIO_THUMBNAILS } from "@/features/auto-thumbnail/fixtures";
 
 export const STUDIO_BUMPERS = [
   { type: "intro" as const, name: "Pulse sting (2s)" },
@@ -61,10 +57,7 @@ export const STUDIO_BUMPERS = [
 
 export const STUDIO_SUBTITLE_LANGS = ["en", "es", "hi"];
 
-export const STUDIO_END_CARD = {
-  headline: "Follow for the full playbook",
-  button: "Link in bio",
-};
+export { DEMO_END_CARD as STUDIO_END_CARD } from "@/features/end-card/fixtures";
 
 export function studioScriptRewrite(brief: string) {
   const topic = brief.trim() || "your offer";
